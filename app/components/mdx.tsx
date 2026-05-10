@@ -1,10 +1,10 @@
 import Link from 'next/link'
-import Image from 'next/image'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import rehypeRaw from 'rehype-raw'
 import { highlight } from 'sugar-high'
 import React from 'react'
+import { MermaidDiagram } from 'app/components/mermaid-diagram'
 
 /** 빈 줄 보존: &nbsp; 스페이서와 연속 빈 줄을 시각적 간격으로 변환 */
 function preserveSpacing(source: string): string {
@@ -73,6 +73,14 @@ function createHeading(level) {
   return Heading
 }
 
+function getTextContent(node: React.ReactNode): string {
+  return React.Children.toArray(node).map((child) => {
+    if (typeof child === 'string' || typeof child === 'number') return String(child)
+    if (React.isValidElement(child)) return getTextContent((child as React.ReactElement<any>).props.children)
+    return ''
+  }).join('')
+}
+
 const components = {
   h1: createHeading(1),
   h2: createHeading(2),
@@ -80,7 +88,16 @@ const components = {
   h4: createHeading(4),
   h5: createHeading(5),
   h6: createHeading(6),
-  img: (props) => <Image alt={props.alt || ''} className="rounded-lg" width={800} height={450} {...props} />,
+  img: ({ alt, src, ...props }) => (
+    <img
+      alt={alt || ''}
+      src={typeof src === 'string' ? src : ''}
+      className="rounded-lg"
+      loading="lazy"
+      decoding="async"
+      {...props}
+    />
+  ),
   a: ({ href, children, ...props }) => {
     if (!href) return <a {...props}>{children}</a>
     if (href.startsWith('/')) return <Link href={href} {...props}>{children}</Link>
@@ -94,6 +111,14 @@ const components = {
     const lang = React.isValidElement(codeChild)
       ? ((codeChild as React.ReactElement<any>).props.className as string)?.replace('language-', '') || ''
       : ''
+    const codeContent = React.isValidElement(codeChild)
+      ? ((codeChild as React.ReactElement<any>).props['data-raw-code'] || getTextContent((codeChild as React.ReactElement<any>).props.children))
+      : getTextContent(children)
+
+    if (lang === 'mermaid') {
+      return <MermaidDiagram chart={String(codeContent).replace(/\n$/, '')} />
+    }
+
     return (
       <div className="code-block-wrapper">
         {lang && <div className="code-block-lang">{lang}</div>}
@@ -102,7 +127,17 @@ const components = {
     )
   },
   code: ({ children, className, ...props }) => {
-    const content = String(children)
+    const content = getTextContent(children)
+    const language = className?.replace('language-', '')
+
+    if (language === 'mermaid') {
+      return (
+        <code className={className} {...props} data-raw-code={content}>
+          {content}
+        </code>
+      )
+    }
+
     // className이 있거나 (language 지정), 줄바꿈이 포함되면 코드 블록
     const isCodeBlock = !!className || content.includes('\n')
     if (!isCodeBlock) {

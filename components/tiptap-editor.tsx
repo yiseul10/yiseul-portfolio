@@ -31,12 +31,14 @@ import {
   Highlighter, Palette, RemoveFormatting,
   ChevronDown, Type,
   Plus, X,
+  Upload, Workflow, Loader2,
 } from 'lucide-react'
 
 // ─── Types ───────────────────────────────────────────────
 interface TiptapEditorProps {
   value: string
   onChange: (markdown: string) => void
+  uploadImage?: (file: File) => Promise<string>
 }
 
 // ─── Constants ───────────────────────────────────────────
@@ -279,10 +281,18 @@ function TableMenu({ editor }: { editor: any }) {
 }
 
 // ─── Main Toolbar ────────────────────────────────────────
-function Toolbar({ editor }: { editor: any }) {
-  if (!editor) return null
+function Toolbar({
+  editor,
+  uploadImage,
+}: {
+  editor: any
+  uploadImage?: (file: File) => Promise<string>
+}) {
+  const imageInputRef = useRef<HTMLInputElement>(null)
+  const [isUploadingImage, setIsUploadingImage] = useState(false)
 
   const addLink = useCallback(() => {
+    if (!editor) return
     const previousUrl = editor.getAttributes('link').href
     const url = window.prompt('URL을 입력하세요', previousUrl || '')
     if (url === null) return
@@ -293,10 +303,59 @@ function Toolbar({ editor }: { editor: any }) {
     editor.chain().focus().extendMarkRange('link').setLink({ href: url }).run()
   }, [editor])
 
-  const addImage = useCallback(() => {
-    const url = window.prompt('이미지 URL을 입력하세요')
-    if (url) editor.chain().focus().setImage({ src: url }).run()
+  const insertImage = useCallback((src: string, alt = '') => {
+    if (!editor) return
+    editor.chain().focus().setImage({ src, alt }).run()
   }, [editor])
+
+  const addImageByUrl = useCallback(() => {
+    if (!editor) return
+    const url = window.prompt('이미지 URL을 입력하세요')
+    if (!url) return
+
+    const alt = window.prompt('이미지 설명을 입력하세요 (선택)', '') || ''
+    insertImage(url.trim(), alt.trim())
+  }, [editor, insertImage])
+
+  const handleImageUpload = useCallback(async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const input = event.currentTarget
+    const file = input.files?.[0]
+    input.value = ''
+
+    if (!file || !uploadImage) return
+
+    try {
+      setIsUploadingImage(true)
+      const imageUrl = await uploadImage(file)
+      const fallbackAlt = file.name.replace(/\.[^.]+$/, '')
+      insertImage(imageUrl, fallbackAlt)
+    } catch (error) {
+      const message = error instanceof Error ? error.message : '알 수 없는 오류가 발생했습니다.'
+      window.alert(`이미지 업로드 실패: ${message}`)
+    } finally {
+      setIsUploadingImage(false)
+    }
+  }, [insertImage, uploadImage])
+
+  const insertMermaidDiagram = useCallback(() => {
+    if (!editor) return
+
+    editor.chain().focus().insertContent([
+      {
+        type: 'codeBlock',
+        attrs: { language: 'mermaid' },
+        content: [
+          {
+            type: 'text',
+            text: 'flowchart TD\n    A[Idea] --> B[Draft]\n    B --> C{Review}\n    C -->|Ship| D[Publish]\n    C -->|Revise| B',
+          },
+        ],
+      },
+      { type: 'paragraph' },
+    ]).run()
+  }, [editor])
+
+  if (!editor) return null
 
   return (
     <div className="bg-background border-b shrink-0">
@@ -412,9 +471,46 @@ function Toolbar({ editor }: { editor: any }) {
             <Unlink className="h-4 w-4" />
           </ToolbarButton>
         )}
-        <ToolbarButton onClick={addImage} tooltip="이미지 URL 삽입">
-          <ImageIcon className="h-4 w-4" />
+        <Dropdown
+          align="right"
+          trigger={
+            <Button type="button" variant="ghost" size="icon-sm" title="이미지 삽입" disabled={isUploadingImage}>
+              {isUploadingImage ? <Loader2 className="h-4 w-4 animate-spin" /> : <ImageIcon className="h-4 w-4" />}
+            </Button>
+          }
+        >
+          <div className="py-1 min-w-[168px]">
+            <button
+              type="button"
+              className="w-full flex items-center gap-2 px-3 py-1.5 text-sm hover:bg-accent transition-colors"
+              onClick={addImageByUrl}
+            >
+              <LinkIcon className="h-3.5 w-3.5" />
+              URL로 삽입
+            </button>
+            {uploadImage && (
+              <button
+                type="button"
+                className="w-full flex items-center gap-2 px-3 py-1.5 text-sm hover:bg-accent transition-colors disabled:opacity-60"
+                onClick={() => imageInputRef.current?.click()}
+                disabled={isUploadingImage}
+              >
+                <Upload className="h-3.5 w-3.5" />
+                업로드해서 삽입
+              </button>
+            )}
+          </div>
+        </Dropdown>
+        <ToolbarButton onClick={insertMermaidDiagram} tooltip="Mermaid 다이어그램 삽입">
+          <Workflow className="h-4 w-4" />
         </ToolbarButton>
+        <input
+          ref={imageInputRef}
+          type="file"
+          accept="image/*"
+          className="hidden"
+          onChange={handleImageUpload}
+        />
       </div>
 
       {/* ── 테이블 커서 시 서브 툴바 자동 표시 ── */}
@@ -425,7 +521,7 @@ function Toolbar({ editor }: { editor: any }) {
 
 // ─── Editor ──────────────────────────────────────────────
 export const TiptapEditor = React.forwardRef<HTMLDivElement, TiptapEditorProps>(
-  ({ value, onChange }, ref) => {
+  ({ value, onChange, uploadImage }, ref) => {
     const editor = useEditor({
       immediatelyRender: false,
       extensions: [
@@ -515,7 +611,7 @@ export const TiptapEditor = React.forwardRef<HTMLDivElement, TiptapEditorProps>(
 
     return (
       <div ref={ref} className="border rounded-lg flex flex-col max-h-[70vh]">
-        <Toolbar editor={editor} />
+        <Toolbar editor={editor} uploadImage={uploadImage} />
         <div className="overflow-auto flex-1">
           <div className="prose max-w-none dark:prose-invert">
             <EditorContent editor={editor} />

@@ -203,6 +203,47 @@ body {
   margin: 1.5rem 0;
 }
 
+.prose .mermaid-diagram {
+  margin: 1.5rem 0;
+  overflow-x: auto;
+  border: 1px solid #d4d4d8;
+  border-radius: 0.75rem;
+  background: #fafafa;
+  padding: 1rem;
+}
+
+.dark .prose .mermaid-diagram {
+  border-color: #3f3f46;
+  background: #18181b;
+}
+
+.prose .mermaid-diagram-svg {
+  display: flex;
+  min-width: 0;
+  justify-content: center;
+}
+
+.prose .mermaid-diagram svg {
+  max-width: 100%;
+  height: auto;
+}
+
+.prose .mermaid-diagram-placeholder,
+.prose .mermaid-diagram-error p {
+  margin: 0;
+  font-size: 0.85rem;
+  color: #52525b;
+}
+
+.dark .prose .mermaid-diagram-placeholder,
+.dark .prose .mermaid-diagram-error p {
+  color: #a1a1aa;
+}
+
+.prose .mermaid-diagram-error pre {
+  margin: 0.75rem 0 0;
+}
+
 .prose .code-block-lang {
   position: absolute;
   top: 0;

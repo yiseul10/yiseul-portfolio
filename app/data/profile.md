@@ -6,7 +6,7 @@
 
 ## 기술 스택
 - **프론트엔드**: React, Next.js, TypeScript, React Query
-- **AI/자동화**: Claude Code, Codex, LLM 기반 업무 보조, AI 번역, RAG 챗봇
+- **AI/자동화**: Claude Code, Codex, n8n, LLM 기반 업무 보조, AI 번역, RAG 챗봇
 - **데이터/운영**: ClickHouse, Apache Superset, 퍼널 트래킹, 로그 설계
 - **스타일링**: Tailwind CSS, PostCSS
 - **백엔드/DB**: Supabase
@@ -64,6 +64,11 @@
 - B2B/B2C 서비스 프론트엔드를 전담하며 어드민, 운영 자동화, 데이터 시각화, SEO, 글로벌 운영 체계를 다뤘습니다.
 - 숙박 입점 자동화 BO 프로젝트에서 수기 단계 15개 중 10개를 시스템화했고, ClickHouse + Superset 기반 퍼널 측정 환경을 구축했습니다.
 - AI 스마트 보고서 프로젝트에서 호텔 세일즈·운영 전략 리포트를 제품화했고, 베타 6주 후 판매 호텔 18%가 자발적으로 채택했습니다.
+
+## 개인 자동화 프로젝트
+- job-hunting-bot은 n8n, Claude API, Notion, Slack으로 만든 개인 구직 자동화 시스템입니다.
+- 원티드 공고를 수집하고, Claude로 JD를 구조화한 뒤, Hard Filter와 점수 기반 Action을 계산해 Notion DB와 Slack 알림으로 연결합니다.
+- Day 8부터는 LLM 분석 결과를 그대로 믿지 않고, Daily Summary Slack과 소규모 A/B Prompt Evaluation으로 운영 상태와 판단 품질을 관측하는 구조로 확장하고 있습니다.
 
 ## 이직 방향
 - 더 큰 규모의 조직에서 업무 프로세스와 역할의 경계를 AI 기반으로 다시 설계하는 일을 해보고 싶습니다.

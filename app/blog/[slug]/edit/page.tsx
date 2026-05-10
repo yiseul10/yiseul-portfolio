@@ -23,6 +23,7 @@ import { useRouter, useParams } from "next/navigation"
 import type { Session } from '@supabase/supabase-js'
 import {toast} from "sonner";
 import {revalidatePost} from "@/app/blog/[slug]/actions";
+import { uploadPostImage } from "@/app/blog/utils/upload-post-image.client"
 
 export default function EditPostPage() {
     const router = useRouter()
@@ -124,23 +125,13 @@ export default function EditPostPage() {
 
         // 새 이미지가 업로드된 경우
         if (imageFile) {
-            const fileExt = imageFile.name.split('.').pop()
-            const fileName = `${Date.now()}.${fileExt}`
-
-            const { error: uploadError } = await supabase.storage
-                .from('post-images')
-                .upload(fileName, imageFile)
-
-            if (uploadError) {
-                setErrorMsg('이미지 업로드 실패: ' + uploadError.message)
+            try {
+                imageUrl = await uploadPostImage(imageFile, 'covers')
+            } catch (error) {
+                const message = error instanceof Error ? error.message : '알 수 없는 오류가 발생했습니다.'
+                setErrorMsg('이미지 업로드 실패: ' + message)
                 return
             }
-
-            const { data: publicUrlData } = supabase.storage
-                .from('post-images')
-                .getPublicUrl(fileName)
-
-            imageUrl = publicUrlData.publicUrl
         }
 
         const tagsArray = values.tags
@@ -257,6 +248,7 @@ export default function EditPostPage() {
                                             <TiptapEditor
                                                 value={field.value}
                                                 onChange={field.onChange}
+                                                uploadImage={(file) => uploadPostImage(file, 'content')}
                                             />
                                         </FormControl>
                                     </FormItem>

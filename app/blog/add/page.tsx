@@ -19,6 +19,7 @@ import { useState } from "react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { CheckCircle, AlertTriangle } from "lucide-react"
 import { useRouter } from "next/navigation"
+import { uploadPostImage } from "@/app/blog/utils/upload-post-image.client"
 
 export default function Page() {
   const router = useRouter()
@@ -53,23 +54,13 @@ export default function Page() {
       let imageUrl = ''
 
       if (imageFile) {
-          const fileExt = imageFile.name.split('.').pop()
-          const fileName = `${Date.now()}.${fileExt}`
-
-          const { error: uploadError } = await supabase.storage
-              .from('post-images')
-              .upload(fileName, imageFile)
-
-          if (uploadError) {
-              setErrorMsg('이미지 업로드 실패: ' + uploadError.message)
+          try {
+              imageUrl = await uploadPostImage(imageFile, 'covers')
+          } catch (error) {
+              const message = error instanceof Error ? error.message : '알 수 없는 오류가 발생했습니다.'
+              setErrorMsg('이미지 업로드 실패: ' + message)
               return
           }
-
-          const { data: publicUrlData } = supabase.storage
-              .from('post-images')
-              .getPublicUrl(fileName)
-
-          imageUrl = publicUrlData.publicUrl
       }
 
       const tagsArray = values.tags
@@ -155,6 +146,7 @@ export default function Page() {
                       <TiptapEditor
                         value={field.value}
                         onChange={field.onChange}
+                        uploadImage={(file) => uploadPostImage(file, 'content')}
                       />
                     </FormControl>
                   </FormItem>

@@ -43,6 +43,22 @@ export const workCaseStudies: Record<string, WorkCaseStudy> = {
         '베타 6주 후 판매 호텔의 18%가 자발적으로 채택했고, 직계약 영업 현장의 핵심 의사결정 도구로 정착했습니다.',
     },
   },
+  job_hunting_bot: {
+    displayTitle: 'job-hunting-bot',
+    description:
+      'n8n, Claude API, Notion, Slack으로 구직 공고 수집부터 LLM 평가, 우선순위 정렬, 운영 리포트까지 연결한 개인 자동화 시스템',
+    tags: ['AI Automation', 'n8n', 'Claude API', 'Notion', 'Slack'],
+    summary: {
+      problem:
+        '매일 채용 공고를 확인하고 JD를 읽어 적합도를 판단하는 과정이 반복적이고, 좋은 후보를 놓치거나 우선순위가 흐려지는 문제가 있었습니다.',
+      role:
+        '문제 정의, 공고 수집 파이프라인, Claude 평가 프롬프트, Action 정규화, Notion DB 스키마, Slack 운영 알림 구조를 직접 설계했습니다.',
+      solution:
+        '원티드 공고를 수집한 뒤 Claude로 JD를 구조화하고, Hard Filter와 Priority Score를 코드로 계산해 Notion과 Slack으로 연결했습니다.',
+      impact:
+        '매일 17:00 실행되는 자동화로 구직 후보를 정리하고, Daily Summary와 A/B Prompt Evaluation을 추가해 LLM 판단 품질을 관측하는 구조로 확장했습니다.',
+    },
+  },
 }
 
 export function getWorkCaseStudy(slug?: string | null) {
