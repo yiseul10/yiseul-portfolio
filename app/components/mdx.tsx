@@ -6,9 +6,15 @@ import { highlight } from 'sugar-high'
 import React from 'react'
 import { MermaidDiagram } from 'app/components/mermaid-diagram'
 
-/** 빈 줄 보존: &nbsp; 스페이서와 연속 빈 줄을 시각적 간격으로 변환 */
+/** 빈 줄 보존: 코드펜스 안은 건드리지 않고 &nbsp;·연속 빈 줄만 시각적 간격으로 변환 */
 function preserveSpacing(source: string): string {
-  let result = source
+  // 코드블록을 placeholder로 마스킹 (정규식이 mermaid 등 코드 내부를 깨뜨리는 것 방지)
+  const blocks: string[] = []
+  let result = source.replace(/```[\s\S]*?```/g, (m) => {
+    blocks.push(m)
+    return `\x00CB${blocks.length - 1}\x00`
+  })
+
   // 에디터에서 보존한 &nbsp; 줄 → 시각적 빈 줄로 변환
   result = result.replace(/\n\n&nbsp;\n\n/g, '\n\n<div class="spacer" style="height:1.5em"></div>\n\n')
   // 연속 빈 줄(3개 이상 개행)도 처리
@@ -17,7 +23,9 @@ function preserveSpacing(source: string): string {
     const spacers = Array(extraBreaks).fill('<div class="spacer" style="height:1.5em"></div>').join('\n')
     return '\n\n' + spacers + '\n\n'
   })
-  return result
+
+  // 코드블록 복원
+  return result.replace(/\x00CB(\d+)\x00/g, (_, i) => blocks[+i])
 }
 
 function Table({ data }) {

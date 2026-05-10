@@ -562,10 +562,15 @@ export const TiptapEditor = React.forwardRef<HTMLDivElement, TiptapEditorProps>(
         let md = (editor.storage as any).markdown.getMarkdown()
 
         // 빈 paragraph가 있었다면 마크다운에서도 보존
-        // getMarkdown()은 빈 paragraph를 빈 줄(\n\n)로 변환하지만 연속 시 합쳐질 수 있음
-        // 연속된 빈 줄 2개를 &nbsp; 삽입으로 보존
+        // 단, 코드블록 내부의 \n\n\n까지 치환되지 않도록 펜스를 placeholder로 보호
         if (fragments.length > 0) {
-          md = md.replace(/\n\n\n/g, '\n\n&nbsp;\n\n')
+          const blocks: string[] = []
+          let masked = md.replace(/```[\s\S]*?```/g, (m: string) => {
+            blocks.push(m)
+            return `\x00CB${blocks.length - 1}\x00`
+          })
+          masked = masked.replace(/\n\n\n/g, '\n\n&nbsp;\n\n')
+          md = masked.replace(/\x00CB(\d+)\x00/g, (_: string, i: string) => blocks[+i])
         }
 
         onChange(md)

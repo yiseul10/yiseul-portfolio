@@ -6,13 +6,6 @@ type MermaidDiagramProps = {
   chart: string
 }
 
-function getDiagramTheme() {
-  const isDarkClass = document.documentElement.classList.contains('dark')
-  const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches
-
-  return isDarkClass || prefersDark ? 'dark' : 'default'
-}
-
 export function MermaidDiagram({ chart }: MermaidDiagramProps) {
   const containerRef = useRef<HTMLDivElement>(null)
   const renderCountRef = useRef(0)
@@ -23,7 +16,6 @@ export function MermaidDiagram({ chart }: MermaidDiagramProps) {
 
   useEffect(() => {
     let cancelled = false
-    const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)')
 
     const renderDiagram = async () => {
       const source = chart.trim()
@@ -44,9 +36,12 @@ export function MermaidDiagram({ chart }: MermaidDiagramProps) {
 
         mermaid.initialize({
           startOnLoad: false,
-          theme: getDiagramTheme(),
+          theme: 'neutral',
           securityLevel: 'strict',
           fontFamily: 'ui-sans-serif, system-ui, sans-serif',
+          // prose 스타일이 foreignObject HTML 라벨을 침범하지 못하도록 SVG <text>로 렌더
+          flowchart: { htmlLabels: false, useMaxWidth: true },
+          sequence: { useMaxWidth: true },
         })
 
         const { svg: renderedSvg, bindFunctions } = await mermaid.render(renderId, source)
@@ -77,17 +72,8 @@ export function MermaidDiagram({ chart }: MermaidDiagramProps) {
 
     renderDiagram()
 
-    const observer = new MutationObserver(renderDiagram)
-    observer.observe(document.documentElement, {
-      attributes: true,
-      attributeFilter: ['class'],
-    })
-    mediaQuery.addEventListener('change', renderDiagram)
-
     return () => {
       cancelled = true
-      observer.disconnect()
-      mediaQuery.removeEventListener('change', renderDiagram)
     }
   }, [baseId, chart])
 
