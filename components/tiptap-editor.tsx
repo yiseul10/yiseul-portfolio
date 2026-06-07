@@ -34,14 +34,12 @@ import {
   Upload, Workflow, Loader2,
 } from 'lucide-react'
 
-// ─── Types ───────────────────────────────────────────────
 interface TiptapEditorProps {
   value: string
   onChange: (markdown: string) => void
   uploadImage?: (file: File) => Promise<string>
 }
 
-// ─── Constants ───────────────────────────────────────────
 const HIGHLIGHT_COLORS = [
   { label: '없음',  color: '' },
   { label: '노랑',  color: '#fef08a' },
