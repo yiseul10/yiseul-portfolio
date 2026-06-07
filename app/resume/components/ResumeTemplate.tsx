@@ -99,7 +99,7 @@ export function ResumeTemplate({ data, authenticated = false }: { data: any; aut
 
       {/* 소개 */}
       {(summaryHeadline || summary) && (
-        <section className="mb-2 print:mb-1">
+        <section className="mb-8 print:mb-6">
           {summaryHeadline && (
             <h2 className="text-2xl font-bold tracking-tight mb-2 print:text-xl">
               {summaryHeadline}

@@ -526,6 +526,23 @@ pre {
   margin: 1rem 0;
 }
 
+/* 렌더러는 컨테이너 폭에 강제로 맞춤.
+   에디터가 저장한 <table style="width:...px">·<colgroup><col width>의 고정 px를 무시하고,
+   auto 레이아웃으로 라벨 컬럼은 내용폭, 값 컬럼은 나머지를 차지하도록 함 */
+.cl-content table {
+  width: 100% !important;
+  max-width: 100% !important;
+}
+
+.cl-content col {
+  width: auto !important;
+}
+
+.cl-content td,
+.cl-content th {
+  word-break: break-word;
+}
+
 .tiptap th,
 .tiptap td,
 .cl-content th,
