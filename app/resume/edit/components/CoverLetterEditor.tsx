@@ -1,6 +1,7 @@
 'use client'
 
 import { useEditor, EditorContent } from '@tiptap/react'
+import { Mark, mergeAttributes } from '@tiptap/core'
 import StarterKit from '@tiptap/starter-kit'
 import { Placeholder } from '@tiptap/extension-placeholder'
 import { TextStyle } from '@tiptap/extension-text-style'
@@ -19,6 +20,8 @@ import {
   Plus,
   Minus,
   Trash2,
+  SeparatorHorizontal,
+  ALargeSmall,
 } from 'lucide-react'
 import { useEffect } from 'react'
 
@@ -27,6 +30,17 @@ interface CoverLetterEditorProps {
   onChange: (html: string) => void
   placeholder?: string
 }
+
+// 작은 텍스트(캡션/보조 설명) 마크 — <small class="cl-small"> 로 출력, 렌더러와 동일 스타일
+const SmallText = Mark.create({
+  name: 'smallText',
+  parseHTML() {
+    return [{ tag: 'small' }]
+  },
+  renderHTML({ HTMLAttributes }) {
+    return ['small', mergeAttributes(HTMLAttributes, { class: 'cl-small' }), 0]
+  },
+})
 
 const COLORS = [
   { value: '', label: '기본' },
@@ -46,11 +60,11 @@ export function CoverLetterEditor({ value, onChange, placeholder }: CoverLetterE
         heading: { levels: [2, 3] },
         codeBlock: false,
         blockquote: false,
-        horizontalRule: false,
         code: false,
       }),
       TextStyle,
       Color,
+      SmallText,
       Table.configure({ resizable: true }),
       TableRow,
       TableHeader,
@@ -99,6 +113,10 @@ export function CoverLetterEditor({ value, onChange, placeholder }: CoverLetterE
           onClick={() => editor.chain().focus().toggleItalic().run()} title="기울임 (Ctrl+I)">
           <Italic className="h-3.5 w-3.5" />
         </button>
+        <button type="button" className={btn(editor.isActive('smallText'))}
+          onClick={() => editor.chain().focus().toggleMark('smallText').run()} title="작은 글씨 (캡션)">
+          <ALargeSmall className="h-3.5 w-3.5" />
+        </button>
 
         <div className="w-px h-4 bg-neutral-300 dark:bg-neutral-600 mx-1" />
 
@@ -128,6 +146,15 @@ export function CoverLetterEditor({ value, onChange, placeholder }: CoverLetterE
           onClick={() => editor.chain().focus().toggleOrderedList().run()}
           title="번호 목록">
           <ListOrdered className="h-3.5 w-3.5" />
+        </button>
+
+        <div className="w-px h-4 bg-neutral-300 dark:bg-neutral-600 mx-1" />
+
+        {/* 구분선 */}
+        <button type="button" className={btn(false)}
+          onClick={() => editor.chain().focus().setHorizontalRule().run()}
+          title="구분선">
+          <SeparatorHorizontal className="h-3.5 w-3.5" />
         </button>
 
         <div className="w-px h-4 bg-neutral-300 dark:bg-neutral-600 mx-1" />

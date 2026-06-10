@@ -502,6 +502,30 @@ pre {
   content: '\00a0';
 }
 
+/* 구분선 — 연한 그레이 */
+.cl-editor .tiptap hr,
+.cl-content hr {
+  border: none;
+  border-top: 1px solid #e5e7eb;
+  margin: 1em 0;
+}
+
+.dark .cl-editor .tiptap hr {
+  border-top-color: #374151;
+}
+
+/* 작은 글씨(캡션/보조 설명) — 기본보다 작고 약간 옅은 색 */
+.cl-editor .tiptap small,
+.cl-content small,
+.cl-content .cl-small {
+  font-size: 0.8em;
+  /*color: #6b7280;*/
+}
+
+.dark .cl-editor .tiptap small {
+  color: #9ca3af;
+}
+
 /* === Tiptap Editor Styles === */
 .tiptap {
   outline: none;
@@ -779,4 +803,26 @@ pre {
   .cl-content em { font-style: italic !important; }
   .cl-content h2 { font-size: 1.1em !important; font-weight: 700 !important; }
   .cl-content h3 { font-size: 1em !important; font-weight: 600 !important; font-style: italic !important; }
+
+  /* 페이지 경계에서 흉하게 끊기는 것 방지 (keep-together)
+     - 메타 표(기간/역할/팀/기술스택)가 페이지 사이에서 쪼개지지 않게
+     - 프로젝트 제목이 페이지 맨 아래 혼자 남지 않게
+     - 문단/리스트 항목이 한가운데서 잘리지 않게 */
+  .cl-content table {
+    page-break-inside: avoid;
+    break-inside: avoid;
+  }
+
+  .cl-content h2,
+  .cl-content h3,
+  .cl-content h4 {
+    page-break-after: avoid;
+    break-after: avoid;
+  }
+
+  .cl-content p,
+  .cl-content li {
+    page-break-inside: avoid;
+    break-inside: avoid;
+  }
 }
