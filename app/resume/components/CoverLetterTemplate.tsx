@@ -11,7 +11,7 @@ const SECTION_LABEL = 'text-xs tracking-widest uppercase font-semibold text-neut
 export function CoverLetterTemplate({ data, profile }: CoverLetterTemplateProps) {
   if (!data) return null
 
-  const sections = Array.isArray(data.sections) ? data.sections.filter(s => s.content) : []
+  const sections = Array.isArray(data.sections) ? data.sections.filter(s => s.content && !s.hidden) : []
   if (sections.length === 0) return null
 
   const last = sections.length - 1
