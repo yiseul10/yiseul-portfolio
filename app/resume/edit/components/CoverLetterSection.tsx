@@ -3,7 +3,7 @@
 import { useFormContext } from 'react-hook-form'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
-import { Plus, Trash2, GripVertical } from 'lucide-react'
+import { Plus, Trash2, GripVertical, Eye, EyeOff } from 'lucide-react'
 import { CoverLetterEditor } from './CoverLetterEditor'
 import {
   DndContext,
@@ -30,27 +30,31 @@ function SortableSection({
   section,
   onUpdate,
   onRemove,
+  onToggleHidden,
 }: {
   id: string
   index: number
-  section: { title: string; content: string }
+  section: { title: string; content: string; hidden?: boolean }
   onUpdate: (field: 'title' | 'content', value: string) => void
   onRemove: () => void
+  onToggleHidden: () => void
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
     useSortable({ id })
 
+  const hidden = !!section.hidden
+
   const style = {
     transform: CSS.Transform.toString(transform),
     transition,
-    opacity: isDragging ? 0.5 : 1,
+    opacity: isDragging ? 0.5 : hidden ? 0.5 : 1,
   }
 
   return (
     <div
       ref={setNodeRef}
       style={style}
-      className="border border-neutral-200 dark:border-neutral-700 rounded-lg p-4 space-y-2 bg-background"
+      className={`border rounded-lg p-4 space-y-2 bg-background transition-opacity ${hidden ? 'border-dashed border-neutral-300 dark:border-neutral-600' : 'border-neutral-200 dark:border-neutral-700'}`}
     >
       <div className="flex items-center gap-2">
         <button
@@ -67,6 +71,18 @@ function SortableSection({
           value={section.title}
           onChange={(e) => onUpdate('title', e.target.value)}
         />
+        {hidden && (
+          <span className="shrink-0 text-xs font-medium text-neutral-500 bg-neutral-100 dark:bg-neutral-800 rounded px-1.5 py-0.5">숨김</span>
+        )}
+        <Button
+          type="button"
+          variant="ghost"
+          size="sm"
+          title={hidden ? '이력서/PDF에 표시' : '이력서/PDF에서 숨김'}
+          onClick={onToggleHidden}
+        >
+          {hidden ? <EyeOff className="h-4 w-4 text-neutral-500" /> : <Eye className="h-4 w-4" />}
+        </Button>
         <Button type="button" variant="ghost" size="sm" onClick={onRemove}>
           <Trash2 className="h-4 w-4 text-red-500" />
         </Button>
@@ -82,7 +98,7 @@ function SortableSection({
 
 export function CoverLetterSection() {
   const { setValue, watch } = useFormContext()
-  const sections: { title: string; content: string }[] = watch('cover_letter.sections') || []
+  const sections: { title: string; content: string; hidden?: boolean }[] = watch('cover_letter.sections') || []
 
   const sensors = useSensors(
     useSensor(PointerSensor),
@@ -101,7 +117,13 @@ export function CoverLetterSection() {
   }
 
   const addSection = () => {
-    setValue('cover_letter.sections', [...sections, { title: '', content: '' }])
+    setValue('cover_letter.sections', [...sections, { title: '', content: '', hidden: false }])
+  }
+
+  const toggleHidden = (i: number) => {
+    const updated = [...sections]
+    updated[i] = { ...updated[i], hidden: !updated[i].hidden }
+    setValue('cover_letter.sections', updated)
   }
 
   const removeSection = (i: number) => {
@@ -129,6 +151,7 @@ export function CoverLetterSection() {
                 section={section}
                 onUpdate={(field, value) => updateSection(i, field, value)}
                 onRemove={() => removeSection(i)}
+                onToggleHidden={() => toggleHidden(i)}
               />
             ))}
           </div>
