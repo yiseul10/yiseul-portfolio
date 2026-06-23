@@ -3,6 +3,7 @@ import { headers } from 'next/headers'
 import { checkRateLimit, getRemainingCount } from '@lib/chat/rate-limit'
 import { buildContext } from '@lib/chat/build-context'
 import { getModel, DEFAULT_PROVIDER } from '@lib/chat/model-config'
+import { MAX_INPUT_LENGTH } from '@lib/chat/constants'
 import { supabase } from '@lib/superbase'
 
 export const runtime = 'nodejs'
@@ -42,12 +43,6 @@ export async function POST(req: Request) {
 
   const { messages }: { messages: UIMessage[] } = await req.json()
 
-  // 시스템 프롬프트 조립
-  const systemPrompt = await buildContext()
-
-  // UIMessage → ModelMessage 변환
-  const modelMessages = await convertToModelMessages(messages)
-
   // 마지막 유저 메시지 추출
   const lastUserMessage = messages
     .filter(m => m.role === 'user')
@@ -56,6 +51,20 @@ export async function POST(req: Request) {
     ?.filter((p): p is { type: 'text'; text: string } => p.type === 'text')
     .map(p => p.text)
     .join('') ?? ''
+
+  // 입력 길이 가드 (클라이언트 maxLength와 함께 이중 방어, 토큰/비용 폭주 방지)
+  if (lastUserMessage.length > MAX_INPUT_LENGTH) {
+    return Response.json(
+      { error: `메시지가 너무 길어요. ${MAX_INPUT_LENGTH}자 이내로 입력해주세요.` },
+      { status: 400 }
+    )
+  }
+
+  // 시스템 프롬프트 조립
+  const systemPrompt = await buildContext()
+
+  // UIMessage → ModelMessage 변환
+  const modelMessages = await convertToModelMessages(messages)
 
   // 스트리밍 호출
   const result = streamText({

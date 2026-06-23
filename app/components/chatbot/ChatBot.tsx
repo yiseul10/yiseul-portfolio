@@ -19,6 +19,7 @@ export function ChatBot() {
     status,
     sendMessage,
     setMessages,
+    stop,
     error,
   } = useChat({
     onError(error) {
@@ -59,12 +60,27 @@ export function ChatBot() {
     }
   }, [status, messages.length, fetchRemaining])
 
+  // Esc 키로 패널 닫기 (a11y)
+  useEffect(() => {
+    if (!isOpen) return
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setIsOpen(false)
+    }
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [isOpen])
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!inputValue.trim() || isLoading) return
 
     const text = inputValue
     setInputValue('')
+    await sendMessage({ text })
+  }
+
+  const handleSuggestionClick = async (text: string) => {
+    if (isLoading) return
     await sendMessage({ text })
   }
 
@@ -84,7 +100,11 @@ export function ChatBot() {
     <>
       {/* 채팅 패널 */}
       <div
-        className={`cursor-pointer fixed bottom-24 right-4 left-4 sm:left-auto sm:right-8 sm:w-[380px] h-[520px] max-h-[calc(100vh-7rem)] bg-white dark:bg-zinc-900 rounded-2xl shadow-2xl flex flex-col overflow-hidden border border-gray-200 dark:border-zinc-800 z-50 transition-all duration-300 origin-bottom-right ${
+        role="dialog"
+        aria-modal="true"
+        aria-label="이슬 챗봇"
+        aria-hidden={!isOpen}
+        className={`fixed bottom-24 right-4 left-4 sm:left-auto sm:right-8 sm:w-[380px] h-[520px] max-h-[calc(100vh-7rem)] bg-white dark:bg-zinc-900 rounded-2xl shadow-2xl flex flex-col overflow-hidden border border-gray-200 dark:border-zinc-800 z-50 transition-all duration-300 origin-bottom-right ${
           isOpen
             ? 'scale-100 opacity-100 pointer-events-auto'
             : 'scale-95 opacity-0 pointer-events-none'
@@ -108,7 +128,11 @@ export function ChatBot() {
           </div>
 
           {/* 메시지 영역 */}
-          <ChatMessages messages={messages} isLoading={isLoading} />
+          <ChatMessages
+            messages={messages}
+            isLoading={isLoading}
+            onSelectSuggestion={handleSuggestionClick}
+          />
         </div>
 
         {/* Rate limit 에러 메시지 */}
@@ -120,8 +144,10 @@ export function ChatBot() {
           <ChatInput
             input={inputValue}
             isLoading={isLoading}
+            isOpen={isOpen}
             onInputChange={handleInputChange}
             onSubmit={handleSubmit}
+            onStop={stop}
           />
         )}
 
