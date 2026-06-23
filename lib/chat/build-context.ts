@@ -94,7 +94,18 @@ async function fetchBlogSummary(): Promise<string> {
   }
 }
 
-export async function buildContext(): Promise<string> {
+// 시스템 프롬프트는 자주 바뀌지 않으므로(이력서/블로그 갱신은 드묾) 조립 결과를 캐싱한다.
+// 멀티턴 대화에서 매 메시지마다 DB(resume_versions·블로그)를 재조회·재파싱하던 비용을 제거.
+const CONTEXT_CACHE_TTL_MS = 5 * 60 * 1000 // 5분
+
+let contextCache: { prompt: string; expiresAt: number } | null = null
+
+/** 캐시 무효화. 이력서/블로그 변경 시 호출하면 다음 요청에서 즉시 재조립된다. */
+export function invalidateContextCache(): void {
+  contextCache = null
+}
+
+async function assembleContext(): Promise<string> {
   const [profile, resume, blog] = await Promise.all([
     loadProfileMarkdown(),
     fetchResumeData(),
@@ -121,4 +132,15 @@ ${resume}
 ---
 ${blog}
 ---`
+}
+
+export async function buildContext(): Promise<string> {
+  const now = Date.now()
+  if (contextCache && contextCache.expiresAt > now) {
+    return contextCache.prompt
+  }
+
+  const prompt = await assembleContext()
+  contextCache = { prompt, expiresAt: now + CONTEXT_CACHE_TTL_MS }
+  return prompt
 }
