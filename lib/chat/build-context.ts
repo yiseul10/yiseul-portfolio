@@ -1,7 +1,16 @@
-import { readFileSync } from 'fs'
+import { existsSync, readFileSync, readdirSync } from 'fs'
 import { join } from 'path'
 import { supabase } from '@lib/superbase'
 import { getBlogPosts } from '@/app/blog/utils/post.server'
+
+type WikiFrontmatter = {
+  chatbot?: boolean
+  public_safe?: boolean
+  topic?: string
+  status?: string
+  priority?: string
+  summary?: string
+}
 
 function loadProfileMarkdown(): string {
   try {
@@ -75,6 +84,68 @@ function stripMarkdown(md: string): string {
     .trim()
 }
 
+function parseFrontmatter(raw: string): { meta: WikiFrontmatter; content: string } {
+  if (!raw.startsWith('---')) return { meta: {}, content: raw }
+
+  const match = raw.match(/^---\n([\s\S]*?)\n---\n?([\s\S]*)$/)
+  if (!match) return { meta: {}, content: raw }
+
+  const meta = match[1].split('\n').reduce<WikiFrontmatter>((acc, line) => {
+    const [key, ...valueParts] = line.split(':')
+    if (!key || !valueParts.length) return acc
+
+    const value = valueParts.join(':').trim().replace(/^['"]|['"]$/g, '')
+    const normalizedKey = key.trim() as keyof WikiFrontmatter
+
+    if (value === 'true') {
+      acc[normalizedKey] = true as never
+    } else if (value === 'false') {
+      acc[normalizedKey] = false as never
+    } else {
+      acc[normalizedKey] = value as never
+    }
+
+    return acc
+  }, {})
+
+  return { meta, content: match[2] }
+}
+
+function loadPublicSafeWikiNotes(): string {
+  try {
+    const wikiDir = join(process.cwd(), 'app', 'data', 'wiki')
+    if (!existsSync(wikiDir)) return '공개 가능한 Wiki 문서가 없습니다.'
+
+    const notes = readdirSync(wikiDir)
+      .filter((fileName) => fileName.endsWith('.md'))
+      .map((fileName) => {
+        const raw = readFileSync(join(wikiDir, fileName), 'utf-8')
+        const { meta, content } = parseFrontmatter(raw)
+        return { fileName, meta, content }
+      })
+      .filter(({ meta }) => meta.chatbot === true && meta.public_safe === true)
+      .sort((a, b) => {
+        const priorityOrder: Record<string, number> = { high: 0, medium: 1, low: 2 }
+        return (priorityOrder[a.meta.priority || 'low'] ?? 2) - (priorityOrder[b.meta.priority || 'low'] ?? 2)
+      })
+      .slice(0, 8)
+      .map(({ fileName, meta, content }) => {
+        const title = content.match(/^#\s+(.+)$/m)?.[1] || fileName.replace(/\.md$/, '')
+        const summary = meta.summary || stripMarkdown(content).slice(0, 700)
+        const topic = meta.topic ? `주제: ${meta.topic}` : ''
+        const status = meta.status ? `상태: ${meta.status}` : ''
+
+        return `### ${title}\n${[topic, status].filter(Boolean).join('\n')}\n요약: ${summary}`
+      })
+
+    if (!notes.length) return '공개 가능한 Wiki 문서가 없습니다.'
+
+    return '공개 허용 Wiki 노트:\n' + notes.join('\n\n')
+  } catch {
+    return 'Wiki 정보를 불러올 수 없습니다.'
+  }
+}
+
 async function fetchBlogSummary(): Promise<string> {
   try {
     const posts = await getBlogPosts()
@@ -106,10 +177,11 @@ export function invalidateContextCache(): void {
 }
 
 async function assembleContext(): Promise<string> {
-  const [profile, resume, blog] = await Promise.all([
+  const [profile, resume, blog, wiki] = await Promise.all([
     loadProfileMarkdown(),
     fetchResumeData(),
     fetchBlogSummary(),
+    loadPublicSafeWikiNotes(),
   ])
 
   return `너는 "이슬"이야. 프론트엔드 개발자이고, 이 포트폴리오 사이트의 주인이야.
@@ -131,6 +203,8 @@ ${profile}
 ${resume}
 ---
 ${blog}
+---
+${wiki}
 ---`
 }
 
