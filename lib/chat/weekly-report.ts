@@ -27,6 +27,33 @@ export type ImprovementActionGroup = {
   items: ImprovementAction[]
 }
 
+export type TrendStatus = 'recurring' | 'resolved' | 'new'
+
+export type QuestionTrend = {
+  question: string
+  currentCount: number
+  previousCount: number
+  status: TrendStatus
+}
+
+export type TopicTrend = {
+  topic: string
+  currentCount: number
+  previousCount: number
+  status: TrendStatus
+}
+
+export type WeeklyComparison = {
+  hasPreviousData: boolean
+  previousDistinctQuestions: number
+  recurringQuestions: QuestionTrend[]
+  resolvedQuestions: QuestionTrend[]
+  newQuestions: QuestionTrend[]
+  topicTrends: TopicTrend[]
+  // 지난주 질문 중 이번 주에 다시 등장하지 않은 비율 (0~1). 지난주 데이터가 없으면 null.
+  carryOverRate: number | null
+}
+
 export type WeeklyChatReport = {
   totalQuestions: number
   uniqueVisitors: number
@@ -35,6 +62,7 @@ export type WeeklyChatReport = {
   unresolvedQuestions: string[]
   improvementActions: ImprovementAction[]
   actionGroups: ImprovementActionGroup[]
+  comparison: WeeklyComparison
   markdownActionLog: string
   wikiWeeklyNote: string
 }
@@ -51,6 +79,7 @@ const TOPIC_RULES: { topic: string; patterns: RegExp[] }[] = [
 function normalizeQuestion(question: string): string {
   return question
     .replace(/\s+/g, ' ')
+    .trim()
     .replace(/[?!.,~]+$/g, '')
     .trim()
 }
@@ -174,6 +203,7 @@ function buildWikiWeeklyNote(report: {
   repeatedQuestions: { question: string; count: number }[]
   unresolvedQuestions: string[]
   improvementActions: ImprovementAction[]
+  comparison: WeeklyComparison
 }): string {
   const lines = [
     '---',
@@ -231,17 +261,138 @@ function buildWikiWeeklyNote(report: {
     }
   }
 
+  lines.push(...buildComparisonSection(report.comparison))
+
   lines.push(
     '',
     '## 메모',
     '- 이번 주 상위 1~3개 액션만 처리',
+    '- 재등장 질문은 지난주 보강이 충분하지 않았다는 신호',
     '- 다음 주 리포트에서 질문 감소 / 재등장 여부 확인'
   )
 
   return lines.join('\n')
 }
 
-export function buildWeeklyChatReport(logs: ChatLogForReport[]): WeeklyChatReport {
+function countNormalizedQuestions(logs: ChatLogForReport[]): Map<string, number> {
+  const counts = new Map<string, number>()
+  for (const log of logs) {
+    const question = normalizeQuestion(log.user_message || '')
+    if (!question) continue
+    counts.set(question, (counts.get(question) || 0) + 1)
+  }
+  return counts
+}
+
+function countTopics(logs: ChatLogForReport[]): Map<string, number> {
+  const counts = new Map<string, number>()
+  for (const log of logs) {
+    const question = normalizeQuestion(log.user_message || '')
+    if (!question) continue
+    const topic = detectTopic(question)
+    counts.set(topic, (counts.get(topic) || 0) + 1)
+  }
+  return counts
+}
+
+export function buildWeeklyComparison(
+  currentLogs: ChatLogForReport[],
+  previousLogs: ChatLogForReport[],
+): WeeklyComparison {
+  const current = countNormalizedQuestions(currentLogs)
+  const previous = countNormalizedQuestions(previousLogs)
+
+  const recurringQuestions: QuestionTrend[] = []
+  const newQuestions: QuestionTrend[] = []
+  const resolvedQuestions: QuestionTrend[] = []
+
+  for (const [question, currentCount] of Array.from(current)) {
+    const previousCount = previous.get(question) || 0
+    if (previousCount > 0) {
+      recurringQuestions.push({ question, currentCount, previousCount, status: 'recurring' })
+    } else {
+      newQuestions.push({ question, currentCount, previousCount: 0, status: 'new' })
+    }
+  }
+
+  for (const [question, previousCount] of Array.from(previous)) {
+    if (!current.has(question)) {
+      resolvedQuestions.push({ question, currentCount: 0, previousCount, status: 'resolved' })
+    }
+  }
+
+  recurringQuestions.sort((a, b) => b.currentCount - a.currentCount)
+  newQuestions.sort((a, b) => b.currentCount - a.currentCount)
+  resolvedQuestions.sort((a, b) => b.previousCount - a.previousCount)
+
+  const currentTopics = countTopics(currentLogs)
+  const previousTopics = countTopics(previousLogs)
+  const topicKeys = new Set([
+    ...Array.from(currentTopics.keys()),
+    ...Array.from(previousTopics.keys()),
+  ])
+
+  const topicTrends: TopicTrend[] = Array.from(topicKeys)
+    .map((topic) => {
+      const currentCount = currentTopics.get(topic) || 0
+      const previousCount = previousTopics.get(topic) || 0
+      const status: TrendStatus =
+        previousCount === 0 ? 'new' : currentCount === 0 ? 'resolved' : 'recurring'
+      return { topic, currentCount, previousCount, status }
+    })
+    .sort((a, b) => b.currentCount - a.currentCount || b.previousCount - a.previousCount)
+
+  const previousDistinctQuestions = previous.size
+  const carryOverRate =
+    previousDistinctQuestions === 0 ? null : resolvedQuestions.length / previousDistinctQuestions
+
+  return {
+    hasPreviousData: previousDistinctQuestions > 0,
+    previousDistinctQuestions,
+    recurringQuestions: recurringQuestions.slice(0, 10),
+    resolvedQuestions: resolvedQuestions.slice(0, 10),
+    newQuestions: newQuestions.slice(0, 10),
+    topicTrends,
+    carryOverRate,
+  }
+}
+
+function buildComparisonSection(comparison: WeeklyComparison): string[] {
+  const lines = ['', '## 지난주 대비']
+
+  if (!comparison.hasPreviousData) {
+    lines.push('- 비교할 지난주 데이터가 없습니다 (첫 주 또는 질문 없음).')
+    return lines
+  }
+
+  const ratePercent =
+    comparison.carryOverRate === null ? '-' : `${Math.round(comparison.carryOverRate * 100)}%`
+  lines.push(
+    `- 지난주 질문 ${comparison.previousDistinctQuestions}종 중 ${comparison.resolvedQuestions.length}종이 이번 주 재등장하지 않음 (${ratePercent})`,
+    `- 재등장(아직 미해결): ${comparison.recurringQuestions.length}종 / 신규: ${comparison.newQuestions.length}종`,
+  )
+
+  if (comparison.recurringQuestions.length > 0) {
+    lines.push('', '### 재등장 질문 (우선 보강)')
+    for (const trend of comparison.recurringQuestions.slice(0, 5)) {
+      lines.push(`- [ ] ${trend.question} (지난주 ${trend.previousCount}회 → 이번주 ${trend.currentCount}회)`)
+    }
+  }
+
+  if (comparison.resolvedQuestions.length > 0) {
+    lines.push('', '### 이번 주 사라진 질문')
+    for (const trend of comparison.resolvedQuestions.slice(0, 5)) {
+      lines.push(`- ${trend.question} (지난주 ${trend.previousCount}회)`)
+    }
+  }
+
+  return lines
+}
+
+export function buildWeeklyChatReport(
+  logs: ChatLogForReport[],
+  previousLogs: ChatLogForReport[] = [],
+): WeeklyChatReport {
   const questions = logs
     .map((log) => {
       const question = normalizeQuestion(log.user_message || '')
@@ -328,23 +479,27 @@ export function buildWeeklyChatReport(logs: ChatLogForReport[]): WeeklyChatRepor
   }
 
   const finalActions = improvementActions.slice(0, 12)
+  const comparison = buildWeeklyComparison(logs, previousLogs)
+  const uniqueVisitors = new Set(questions.map(({ ip }) => ip)).size
 
   return {
     totalQuestions: questions.length,
-    uniqueVisitors: new Set(questions.map(({ ip }) => ip)).size,
+    uniqueVisitors,
     repeatedQuestions,
     topicCounts: sortedTopics,
     unresolvedQuestions,
     improvementActions: finalActions,
     actionGroups: buildActionGroups(finalActions),
+    comparison,
     markdownActionLog: buildMarkdownActionLog(finalActions),
     wikiWeeklyNote: buildWikiWeeklyNote({
       totalQuestions: questions.length,
-      uniqueVisitors: new Set(questions.map(({ ip }) => ip)).size,
+      uniqueVisitors,
       topicCounts: sortedTopics,
       repeatedQuestions,
       unresolvedQuestions,
       improvementActions: finalActions,
+      comparison,
     }),
   }
 }

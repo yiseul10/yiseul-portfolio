@@ -7,6 +7,8 @@ import {
   type ImprovementActionGroup,
   type ImprovementActionType,
   type ImprovementPriority,
+  type QuestionTrend,
+  type WeeklyComparison,
 } from '@lib/chat/weekly-report'
 import { ExportMarkdownButton } from './ExportMarkdownButton'
 import { SaveToObsidianButton } from './SaveToObsidianButton'
@@ -121,6 +123,91 @@ function ImprovementActionGroups({ groups }: { groups: ImprovementActionGroup[] 
   )
 }
 
+function TrendList({
+  items,
+  emptyText,
+  render,
+}: {
+  items: QuestionTrend[]
+  emptyText: string
+  render: (trend: QuestionTrend) => string
+}) {
+  if (!items.length) {
+    return <p className="text-sm text-neutral-500">{emptyText}</p>
+  }
+
+  return (
+    <ul className="space-y-2 text-sm text-neutral-700 dark:text-neutral-200">
+      {items.map((trend) => (
+        <li key={trend.question} className="leading-6">- {render(trend)}</li>
+      ))}
+    </ul>
+  )
+}
+
+function WeeklyComparisonSection({ comparison }: { comparison: WeeklyComparison }) {
+  if (!comparison.hasPreviousData) {
+    return (
+      <section className="rounded-xl border border-neutral-200 p-5 dark:border-neutral-800">
+        <h2 className="text-xl font-semibold">지난주 대비</h2>
+        <p className="mt-2 text-sm text-neutral-500">
+          비교할 지난주 데이터가 없습니다. 질문이 한 주 더 쌓이면 재등장/해결 추적이 표시됩니다.
+        </p>
+      </section>
+    )
+  }
+
+  const carryOverPercent =
+    comparison.carryOverRate === null ? '-' : `${Math.round(comparison.carryOverRate * 100)}%`
+
+  return (
+    <section className="rounded-xl border border-neutral-200 p-5 dark:border-neutral-800">
+      <h2 className="text-xl font-semibold">지난주 대비</h2>
+      <p className="mt-2 text-sm leading-6 text-neutral-600 dark:text-neutral-300">
+        지난주에 들어온 질문이 이번 주에도 반복되는지(재등장 = 보강 미흡 신호), 사라졌는지 대조합니다.
+      </p>
+
+      <div className="mt-4 grid gap-4 sm:grid-cols-3">
+        <div className="rounded-lg border border-neutral-200 p-4 dark:border-neutral-800">
+          <p className="text-sm text-neutral-500">재등장(미해결)</p>
+          <p className="mt-1 text-2xl font-semibold">{comparison.recurringQuestions.length}</p>
+        </div>
+        <div className="rounded-lg border border-neutral-200 p-4 dark:border-neutral-800">
+          <p className="text-sm text-neutral-500">사라진 질문</p>
+          <p className="mt-1 text-2xl font-semibold">{comparison.resolvedQuestions.length}</p>
+        </div>
+        <div className="rounded-lg border border-neutral-200 p-4 dark:border-neutral-800">
+          <p className="text-sm text-neutral-500">지난주 대비 비재등장률</p>
+          <p className="mt-1 text-2xl font-semibold">{carryOverPercent}</p>
+        </div>
+      </div>
+
+      <div className="mt-6 grid gap-6 sm:grid-cols-2">
+        <div className="space-y-3">
+          <h3 className="text-sm font-semibold uppercase tracking-wide text-neutral-500">
+            재등장 질문 (우선 보강)
+          </h3>
+          <TrendList
+            items={comparison.recurringQuestions}
+            emptyText="재등장한 질문이 없습니다."
+            render={(t) => `${t.question} (지난주 ${t.previousCount}회 → 이번주 ${t.currentCount}회)`}
+          />
+        </div>
+        <div className="space-y-3">
+          <h3 className="text-sm font-semibold uppercase tracking-wide text-neutral-500">
+            이번 주 사라진 질문
+          </h3>
+          <TrendList
+            items={comparison.resolvedQuestions}
+            emptyText="사라진 질문이 없습니다."
+            render={(t) => `${t.question} (지난주 ${t.previousCount}회)`}
+          />
+        </div>
+      </div>
+    </section>
+  )
+}
+
 export default async function ChatReportPage({
   searchParams,
 }: {
@@ -149,14 +236,25 @@ export default async function ChatReportPage({
   const prevWeek = addDays(weekStart, -7)
   const nextWeek = addDays(weekStart, 7)
 
-  const { data } = await supabase
-    .from('chat_logs')
-    .select('created_at, ip, user_message, assistant_message')
-    .gte('created_at', weekStart.toISOString())
-    .lt('created_at', weekEnd.toISOString())
-    .order('created_at', { ascending: false })
+  const [{ data }, { data: prevData }] = await Promise.all([
+    supabase
+      .from('chat_logs')
+      .select('created_at, ip, user_message, assistant_message')
+      .gte('created_at', weekStart.toISOString())
+      .lt('created_at', weekEnd.toISOString())
+      .order('created_at', { ascending: false }),
+    supabase
+      .from('chat_logs')
+      .select('created_at, ip, user_message, assistant_message')
+      .gte('created_at', prevWeek.toISOString())
+      .lt('created_at', weekStart.toISOString())
+      .order('created_at', { ascending: false }),
+  ])
 
-  const report = buildWeeklyChatReport((data || []) as ChatLogForReport[])
+  const report = buildWeeklyChatReport(
+    (data || []) as ChatLogForReport[],
+    (prevData || []) as ChatLogForReport[],
+  )
   const exportFileName = `chat-report-actions-${toDateInputValue(weekStart)}.md`
   const wikiNoteFileName = `chat-report-weekly-note-${toDateInputValue(weekStart)}.md`
 
@@ -200,6 +298,8 @@ export default async function ChatReportPage({
           <ImprovementActionGroups groups={report.actionGroups} />
         </div>
       </section>
+
+      <WeeklyComparisonSection comparison={report.comparison} />
 
       <section className="rounded-xl border border-neutral-200 p-5 dark:border-neutral-800">
         <h2 className="text-xl font-semibold">주간 액션 로그 초안</h2>
