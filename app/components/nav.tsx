@@ -27,6 +27,10 @@ const navItems: Record<string, { name: string; icon?: ComponentType<{ className?
     name: 'Resume',
     authOnly: false,
   },
+  '/chat-report': {
+    name: 'Report',
+    authOnly: true,
+  },
 }
 
 export function Navbar() {

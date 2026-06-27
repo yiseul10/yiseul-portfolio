@@ -82,7 +82,7 @@ export default function RootLayout({
         manrope.variable
       )}
     >
-    <body className="antialiased mx-4 mt-0 lg:mx-auto min-h-screen flex flex-col max-w-2xl has-[.editor-page]:max-w-4xl">
+    <body className="antialiased mx-4 mt-0 lg:mx-auto min-h-screen flex flex-col max-w-2xl has-[.editor-page]:max-w-4xl has-[.report-page]:max-w-6xl">
     <main className="min-w-0 mt-2 flex flex-col px-2 md:px-0 flex-1">
       <Navbar />
       {children}
