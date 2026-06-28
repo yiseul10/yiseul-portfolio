@@ -1,7 +1,6 @@
 import { existsSync, readFileSync, readdirSync } from 'fs'
 import { join } from 'path'
 import { supabase } from '@lib/superbase'
-import { getBlogPosts } from '@/app/blog/utils/post.server'
 
 type WikiFrontmatter = {
   chatbot?: boolean
@@ -146,25 +145,6 @@ function loadPublicSafeWikiNotes(): string {
   }
 }
 
-async function fetchBlogSummary(): Promise<string> {
-  try {
-    const posts = await getBlogPosts()
-    if (!posts.length) return '블로그 글이 없습니다.'
-
-    const summaries = posts.slice(0, 10).map((post) => {
-      const description = post.description ? `설명: ${post.description}` : ''
-      const content = post.mdx_content
-        ? `내용 요약: ${stripMarkdown(post.mdx_content).slice(0, 300)}`
-        : ''
-      return `### "${post.title}" (${post.category || '미분류'})\n${description}\n${content}`
-    })
-
-    return '블로그 글 목록:\n' + summaries.join('\n\n')
-  } catch {
-    return '블로그 정보를 불러올 수 없습니다.'
-  }
-}
-
 // 시스템 프롬프트는 자주 바뀌지 않으므로(이력서/블로그 갱신은 드묾) 조립 결과를 캐싱한다.
 // 멀티턴 대화에서 매 메시지마다 DB(resume_versions·블로그)를 재조회·재파싱하던 비용을 제거.
 const CONTEXT_CACHE_TTL_MS = 5 * 60 * 1000 // 5분
@@ -177,10 +157,9 @@ export function invalidateContextCache(): void {
 }
 
 async function assembleContext(): Promise<string> {
-  const [profile, resume, blog, wiki] = await Promise.all([
+  const [profile, resume, wiki] = await Promise.all([
     loadProfileMarkdown(),
     fetchResumeData(),
-    fetchBlogSummary(),
     loadPublicSafeWikiNotes(),
   ])
 
@@ -201,8 +180,6 @@ async function assembleContext(): Promise<string> {
 ${profile}
 ---
 ${resume}
----
-${blog}
 ---
 ${wiki}
 ---`

@@ -2,6 +2,7 @@ import { streamText, UIMessage, convertToModelMessages } from 'ai'
 import { headers } from 'next/headers'
 import { checkRateLimit, getRemainingCount } from '@lib/chat/rate-limit'
 import { buildContext } from '@lib/chat/build-context'
+import { retrieveBlogChunks } from '@lib/chat/retrieve'
 import { getModel, DEFAULT_PROVIDER } from '@lib/chat/model-config'
 import { MAX_INPUT_LENGTH } from '@lib/chat/constants'
 import { supabase } from '@lib/superbase'
@@ -60,8 +61,15 @@ export async function POST(req: Request) {
     )
   }
 
-  // 시스템 프롬프트 조립
-  const systemPrompt = await buildContext()
+  // 고정 컨텍스트(프로필·이력서·wiki, 캐시) + 질문 기반 블로그 검색 결과 결합
+  const [fixedContext, blogChunks] = await Promise.all([
+    buildContext(),
+    retrieveBlogChunks(lastUserMessage),
+  ])
+  const blogSection = blogChunks.length
+    ? `\n\n관련 블로그 내용:\n${blogChunks.join('\n\n')}`
+    : ''
+  const systemPrompt = `${fixedContext}${blogSection}`
 
   // UIMessage → ModelMessage 변환
   const modelMessages = await convertToModelMessages(messages)
