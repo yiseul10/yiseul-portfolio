@@ -5,7 +5,7 @@
     "build": "next build",
     "start": "next start",
     "sync:wiki": "node scripts/sync-wiki.mjs",
-    "embed:posts": "tsx --env-file=.env.local scripts/embed-posts.ts"
+    "embed:posts": "tsx scripts/embed-posts.ts"
   },
   "dependencies": {
     "@ai-sdk/openai": "^3.0.47",
@@ -71,6 +71,7 @@
   "devDependencies": {
     "@tailwindcss/postcss": "^4.1.6",
     "autoprefixer": "^10.4.21",
+    "dotenv": "^17.4.2",
     "postcss": "^8.5.3",
     "tailwindcss": "^4.1.6",
     "tsx": "^4.22.4"

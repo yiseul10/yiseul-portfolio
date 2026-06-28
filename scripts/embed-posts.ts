@@ -1,6 +1,10 @@
+import { config } from 'dotenv'
 import { createClient } from '@supabase/supabase-js'
 import { chunkMarkdown } from '../lib/chat/chunk'
 import { embedTexts } from '../lib/chat/embeddings'
+
+// .env.local 로드 (Node 버전과 무관하게 동작하도록 --env-file 대신 dotenv 사용)
+config({ path: '.env.local' })
 
 const url = process.env.NEXT_PUBLIC_SUPABASE_URL
 const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
