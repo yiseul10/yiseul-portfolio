@@ -1,17 +1,16 @@
 import Link from 'next/link'
 import { formatDate } from '@/app/blog/utils/post.server'
-import { Session } from '@supabase/supabase-js'
 import { Badge } from '@/components/ui/badge'
 import { Eye, EyeClosed } from 'lucide-react'
 
 interface PostItemProps {
   post: any
-  session?: Session | null
+  isAdmin?: boolean
   showDescription?: boolean
   showBorder?: boolean
 }
 
-export function PostItem({ post, session, showDescription = true, showBorder = true }: PostItemProps) {
+export function PostItem({ post, isAdmin = false, showDescription = true, showBorder = true }: PostItemProps) {
   return (
     <article className={`flex flex-col justify-between items-start ${showBorder ? 'border-b-2 border-neutral-100 dark:border-neutral-800 py-4' : ''}`}>
       <div className="w-full">
@@ -24,7 +23,7 @@ export function PostItem({ post, session, showDescription = true, showBorder = t
               {post.title}
             </Link>
           </h3>
-          {session && (
+          {isAdmin && (
             !post.published ? (
               <Badge variant="destructive" className="text-[11px] opacity-90 shrink-0">
                 <EyeClosed className="w-3 h-3" />

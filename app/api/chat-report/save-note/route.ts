@@ -2,7 +2,7 @@ import { mkdir, writeFile } from 'fs/promises'
 import { homedir } from 'os'
 import { join } from 'path'
 import { createServerSupabase } from '@lib/supabase-server'
-import { getAdminSession } from '@lib/auth/admin'
+import { getAdminUser } from '@lib/auth/admin'
 
 function getDefaultObsidianDir(): string {
   return join(homedir(), 'Documents', 'Obsidian Vault', 'wiki', 'projects', 'portpolio2', 'chat-report-weekly')
@@ -15,9 +15,9 @@ function sanitizeFileName(fileName: string): string {
 
 export async function POST(request: Request) {
   const supabase = await createServerSupabase()
-  const session = await getAdminSession(supabase)
+  const adminUser = await getAdminUser(supabase)
 
-  if (!session) {
+  if (!adminUser) {
     return Response.json({ error: '로그인 후 저장할 수 있습니다.' }, { status: 401 })
   }
 

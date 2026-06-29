@@ -8,7 +8,7 @@ import {PostActions} from "@/app/blog/[slug]/components/PostActions";
 import {PostGuard} from "@/app/blog/[slug]/components/PostGuard";
 import { applyWorkCaseStudyPresentation, getWorkCaseStudy } from '@lib/work-case-studies'
 import { createServerSupabase } from '@lib/supabase-server'
-import { getAdminSession } from '@lib/auth/admin'
+import { getAdminUser } from '@lib/auth/admin'
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
@@ -95,14 +95,14 @@ export async function generateMetadata({ params }): Promise<Metadata | undefined
 
 export default async function WorkPost({ params }) {
     const serverSupabase = await createServerSupabase()
-    const adminSession = await getAdminSession(serverSupabase)
+    const adminUser = await getAdminUser(serverSupabase)
 
     let query = serverSupabase
         .from('posts')
         .select('*')
         .eq('slug', params.slug)
 
-    if (!adminSession) {
+    if (!adminUser) {
         query = query.eq('published', true)
     }
 

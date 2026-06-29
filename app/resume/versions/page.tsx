@@ -4,15 +4,15 @@ import { VersionList } from './components/VersionList'
 import { Button } from '@/components/ui/button'
 import { Plus, MoveLeft } from 'lucide-react'
 import Link from 'next/link'
-import { getAdminSession } from '@lib/auth/admin'
+import { getAdminUser } from '@lib/auth/admin'
 
 export const dynamic = 'force-dynamic'
 
 export default async function VersionsPage() {
   const supabase = await createServerSupabase()
-  const session = await getAdminSession(supabase)
+  const adminUser = await getAdminUser(supabase)
 
-  if (!session) redirect('/login')
+  if (!adminUser) redirect('/login')
 
   const { data: versions } = await supabase
     .from('resume_versions')

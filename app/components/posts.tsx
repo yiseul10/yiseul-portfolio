@@ -6,6 +6,7 @@ import { supabase } from '@lib/superbase'
 import { Button } from '@/components/ui/button'
 import { Eye, EyeClosed, ChevronLeft, ChevronRight } from 'lucide-react'
 import { PostItem } from '@/app/components/post-item'
+import { isAdminSession } from '@lib/auth/client'
 
 export const dynamic = 'force-dynamic'
 
@@ -43,7 +44,7 @@ export function BlogPosts({
       .select('*', { count: 'exact' })
       .order('created_at', { ascending: false })
 
-    if (!currentSession) {
+    if (!isAdminSession(currentSession)) {
       query = query.eq('published', true)
     } else if (filter === 'published') {
       query = query.eq('published', true)
@@ -131,7 +132,7 @@ export function BlogPosts({
               {cat === 'all' ? 'All' : cat === 'study' ? 'Study' : 'Diary'}
             </button>
           ))}
-          {session && (
+          {isAdminSession(session) && (
             <>
               {showCategoryFilter && <div className="w-px h-5 bg-neutral-200 dark:bg-neutral-700 mx-1" />}
               <button
@@ -164,7 +165,7 @@ export function BlogPosts({
       {/* 포스트 목록 */}
       <div className="w-full flex flex-col gap-8">
         {posts.map((post) => (
-          <PostItem key={post.slug} post={post} session={session} />
+          <PostItem key={post.slug} post={post} isAdmin={isAdminSession(session)} />
         ))}
       </div>
 
