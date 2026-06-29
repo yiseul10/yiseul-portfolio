@@ -14,6 +14,7 @@ import { ExportMarkdownButton } from './ExportMarkdownButton'
 import { SaveToObsidianButton } from './SaveToObsidianButton'
 import { ReportTabs } from './ReportTabs'
 import { SplitPane } from './SplitPane'
+import { getAdminSession } from '@lib/auth/admin'
 
 export const dynamic = 'force-dynamic'
 
@@ -221,7 +222,7 @@ export default async function ChatReportPage({
 }) {
   const params = await searchParams
   const supabase = await createServerSupabase()
-  const { data: { session } } = await supabase.auth.getSession()
+  const session = await getAdminSession(supabase)
 
   if (!session) {
     return (

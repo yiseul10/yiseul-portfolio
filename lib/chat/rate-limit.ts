@@ -21,9 +21,9 @@ export async function checkRateLimit(ip: string): Promise<{
     .gte('created_at', todayStart)
 
   if (error) {
-    // DB 에러 시 허용 (로그 저장 실패해도 대화는 가능하게)
+    // DB 에러 시 차단한다. 공개 배포에서는 로그/제한이 깨진 상태로 AI 호출을 열어두지 않는다.
     console.error('Rate limit check failed:', error)
-    return { allowed: true, remaining: DAILY_LIMIT }
+    return { allowed: false, remaining: 0 }
   }
 
   const used = count ?? 0
@@ -45,7 +45,7 @@ export async function getRemainingCount(ip: string): Promise<number> {
     .gte('created_at', todayStart)
 
   if (error) {
-    return DAILY_LIMIT
+    return 0
   }
 
   return Math.max(0, DAILY_LIMIT - (count ?? 0))

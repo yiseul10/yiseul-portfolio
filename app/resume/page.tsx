@@ -3,12 +3,13 @@ import { CoverLetterTemplate } from './components/CoverLetterTemplate'
 import { ResumeActions } from './components/ResumeActions'
 import { defaultResumeData } from '@lib/types/resume'
 import { createServerSupabase } from '@lib/supabase-server'
+import { getAdminSession } from '@lib/auth/admin'
 
 export const dynamic = 'force-dynamic'
 
 export default async function ResumePage() {
   const supabase = await createServerSupabase()
-  const { data: { session } } = await supabase.auth.getSession()
+  const session = await getAdminSession(supabase)
 
   // resume_versions에서 활성 버전 로드
   const { data: version } = await supabase

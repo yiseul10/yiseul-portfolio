@@ -39,6 +39,7 @@ function listMarkdownFiles(dir) {
 function hasPublicChatbotFlags(raw) {
   return /^---\n[\s\S]*?^chatbot:\s*true\s*$/m.test(raw)
     && /^---\n[\s\S]*?^public_safe:\s*true\s*$/m.test(raw)
+    && /^---\n[\s\S]*?^summary:\s*\S[\s\S]*$/m.test(raw)
 }
 
 let copied = 0
@@ -61,4 +62,4 @@ for (const sourceFile of listMarkdownFiles(sourceDir)) {
 
 console.log(`Wiki sync complete: ${copied} markdown file(s) copied to app/data/wiki.`)
 console.log(`Skipped file(s): ${skipped}.`)
-console.log('chatbot: true 와 public_safe: true 가 모두 있는 문서만 복사됩니다.')
+console.log('chatbot: true, public_safe: true, summary 가 모두 있는 문서만 복사됩니다.')

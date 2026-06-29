@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button'
 import { supabase } from "@lib/superbase"
 import type { Session } from '@supabase/supabase-js'
 import type { LucideIcon } from 'lucide-react'
+import { isAdminSession } from '@lib/auth/client'
 
 interface AuthButtonProps {
     icon: LucideIcon
@@ -36,7 +37,7 @@ export function AuthButton({
         }
     }, [])
 
-    if (!session) return null
+    if (!isAdminSession(session)) return null
 
     return (
         <Button

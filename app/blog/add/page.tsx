@@ -20,6 +20,8 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { CheckCircle, AlertTriangle } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { uploadPostImage } from "@/app/blog/utils/upload-post-image.client"
+import { useEffect } from "react";
+import { isAdminSession } from '@lib/auth/client'
 
 export default function Page() {
   const router = useRouter()
@@ -28,6 +30,11 @@ export default function Page() {
   const [errorMsg, setErrorMsg] = useState("")
   const [successMsg, setSuccessMsg] = useState("")
 
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (!isAdminSession(session)) router.push('/login')
+    })
+  }, [router])
 
   const schema = z.object({
     title: z.string().min(1, "required"),

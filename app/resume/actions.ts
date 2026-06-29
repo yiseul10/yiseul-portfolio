@@ -4,6 +4,7 @@ import { revalidatePath } from 'next/cache'
 import { createServerSupabase } from '@lib/supabase-server'
 import type { ResumeData } from '@lib/types/resume'
 import type { CoverLetterData } from '@lib/types/cover-letter'
+import { requireAdminSession } from '@lib/auth/admin'
 
 export async function revalidateResume() {
   revalidatePath('/resume')
@@ -13,6 +14,7 @@ export async function revalidateResume() {
 // 활성 버전 가져오기
 export async function getActiveVersion() {
   const supabase = await createServerSupabase()
+  await requireAdminSession(supabase)
   const { data, error } = await supabase
     .from('resume_versions')
     .select('*')
@@ -24,6 +26,7 @@ export async function getActiveVersion() {
 // 모든 버전 목록
 export async function getAllVersions() {
   const supabase = await createServerSupabase()
+  await requireAdminSession(supabase)
   const { data, error } = await supabase
     .from('resume_versions')
     .select('id, name, memo, is_active, created_at, updated_at')
@@ -34,6 +37,7 @@ export async function getAllVersions() {
 // 특정 버전 가져오기
 export async function getVersion(id: string) {
   const supabase = await createServerSupabase()
+  await requireAdminSession(supabase)
   const { data, error } = await supabase
     .from('resume_versions')
     .select('*')
@@ -50,6 +54,7 @@ export async function createVersion(payload: {
   cover_letter?: CoverLetterData | null
 }) {
   const supabase = await createServerSupabase()
+  await requireAdminSession(supabase)
   const { data, error } = await supabase
     .from('resume_versions')
     .insert({
@@ -74,6 +79,7 @@ export async function updateVersion(id: string, payload: {
   cover_letter?: CoverLetterData | null
 }) {
   const supabase = await createServerSupabase()
+  await requireAdminSession(supabase)
   const { error } = await supabase
     .from('resume_versions')
     .update(payload)
@@ -86,6 +92,7 @@ export async function updateVersion(id: string, payload: {
 // 활성 버전 전환 (RPC로 트랜잭션 보장)
 export async function setActiveVersion(id: string) {
   const supabase = await createServerSupabase()
+  await requireAdminSession(supabase)
 
   const { error } = await supabase.rpc('set_active_version', { version_id: id })
 
@@ -96,6 +103,7 @@ export async function setActiveVersion(id: string) {
 // 버전 삭제
 export async function deleteVersion(id: string) {
   const supabase = await createServerSupabase()
+  await requireAdminSession(supabase)
 
   // 활성 버전은 삭제 불가
   const { data } = await supabase
@@ -120,6 +128,7 @@ export async function deleteVersion(id: string) {
 // 버전 복제
 export async function duplicateVersion(id: string, newName: string) {
   const supabase = await createServerSupabase()
+  await requireAdminSession(supabase)
   const { data: source } = await supabase
     .from('resume_versions')
     .select('name, resume_data, cover_letter')

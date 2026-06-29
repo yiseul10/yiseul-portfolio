@@ -23,16 +23,17 @@ Obsidian Vault/Portfolio Public Wiki
 OBSIDIAN_PUBLIC_WIKI_DIR="/Users/me/Obsidian/Portfolio Public Wiki" npm run sync:wiki
 ```
 
-동기화 스크립트도 `chatbot: true`와 `public_safe: true`가 모두 있는 문서만 복사합니다.
+동기화 스크립트도 `chatbot: true`, `public_safe: true`, `summary`가 모두 있는 문서만 복사합니다.
 
 챗봇 컨텍스트에 포함되려면 frontmatter에 아래 두 값이 모두 명시되어야 합니다.
 
 ```md
 chatbot: true
 public_safe: true
+summary: 방문자에게 설명해도 되는 핵심 요약
 ```
 
-둘 중 하나라도 없거나 `false`이면 챗봇은 문서를 읽지 않습니다.
+셋 중 하나라도 없거나 `false`이면 챗봇은 문서를 읽지 않습니다.
 
 권장 frontmatter:
 
@@ -47,7 +48,9 @@ summary: 방문자에게 설명해도 되는 핵심 요약
 ---
 ```
 
-`summary`가 있으면 챗봇에는 summary를 우선 제공합니다. 없으면 본문에서 마크다운 문법을 제거한 뒤 앞부분만 요약 재료로 사용합니다. 즉 **챗봇이 실제로 읽는 것은 본문이 아니라 `summary`** 이므로, summary는 방문자에게 그대로 보여줄 수 있는 사실 기반 한두 문장으로 작성합니다. priority 순으로 상위 8개 문서만 컨텍스트에 들어갑니다.
+챗봇이 실제로 읽는 것은 본문이 아니라 `summary`입니다. `summary`가 없는 문서는 `chatbot: true`와 `public_safe: true`가 있더라도 챗봇 컨텍스트에서 제외됩니다.
+
+따라서 `summary`는 방문자에게 그대로 보여줄 수 있는 사실 기반 한두 문장으로 작성합니다. priority 순으로 상위 8개 문서만 컨텍스트에 들어갑니다.
 
 ## 문서 타입
 

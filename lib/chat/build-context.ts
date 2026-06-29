@@ -130,12 +130,15 @@ function loadPublicSafeWikiNotes(): string {
       .slice(0, 8)
       .map(({ fileName, meta, content }) => {
         const title = content.match(/^#\s+(.+)$/m)?.[1] || fileName.replace(/\.md$/, '')
-        const summary = meta.summary || stripMarkdown(content).slice(0, 700)
+        if (!meta.summary) return null
+
+        const summary = meta.summary
         const topic = meta.topic ? `주제: ${meta.topic}` : ''
         const status = meta.status ? `상태: ${meta.status}` : ''
 
         return `### ${title}\n${[topic, status].filter(Boolean).join('\n')}\n요약: ${summary}`
       })
+      .filter((note): note is string => Boolean(note))
 
     if (!notes.length) return '공개 가능한 Wiki 문서가 없습니다.'
 

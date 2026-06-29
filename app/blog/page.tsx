@@ -5,6 +5,7 @@ import { PostItem } from '@/app/components/post-item'
 import { PostFilters } from '@/app/components/post-filters'
 import { PostPagination } from '@/app/components/post-pagination'
 import { createServerSupabase } from '@lib/supabase-server'
+import { getAdminSession } from '@lib/auth/admin'
 
 export const dynamic = 'force-dynamic'
 
@@ -17,7 +18,7 @@ export default async function Page({
 }) {
   const params = await searchParams
   const supabase = await createServerSupabase()
-  const { data: { session } } = await supabase.auth.getSession()
+  const session = await getAdminSession(supabase)
 
   const category = params.category || 'all'
   const filter = params.filter || null

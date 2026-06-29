@@ -24,6 +24,7 @@ import type { Session } from '@supabase/supabase-js'
 import {toast} from "sonner";
 import {revalidatePost} from "@/app/blog/[slug]/actions";
 import { uploadPostImage } from "@/app/blog/utils/upload-post-image.client"
+import { isAdminSession } from '@lib/auth/client'
 
 export default function EditPostPage() {
     const router = useRouter()
@@ -78,7 +79,7 @@ export default function EditPostPage() {
             // 세션 확인
             const { data: { session } } = await supabase.auth.getSession()
 
-            if (!session) {
+            if (!isAdminSession(session)) {
                 setErrorMsg("로그인이 필요합니다.")
                 setSession(null)
                 setIsLoading(false)
@@ -175,7 +176,7 @@ export default function EditPostPage() {
         )
     }
 
-    if (!session) {
+    if (!isAdminSession(session)) {
         return (
             <div className="w-full mx-auto max-w-xl p-6">
                 <Alert variant="destructive">

@@ -5,9 +5,9 @@ import { supabase } from "@lib/superbase";
 import type { Metadata } from 'next'
 import {formatDate} from "@/app/blog/utils/post.server";
 import {PostActions} from "@/app/blog/[slug]/components/PostActions";
-import {createServerClient} from "@supabase/ssr";
-import {cookies} from "next/headers";
 import {PostGuard} from "@/app/blog/[slug]/components/PostGuard";
+import { createServerSupabase } from '@lib/supabase-server'
+import { getAdminSession } from '@lib/auth/admin'
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
@@ -25,26 +25,14 @@ export async function generateStaticParams() {
 }
 
 export async function generateMetadata({ params }): Promise<Metadata | undefined> {
-    // 일단 모든 포스트를 가져옴
     const { data: post } = await supabase
         .from('posts')
         .select('title, description, image, created_at, slug, published')
         .eq('slug', params.slug)
+        .eq('published', true)
         .single()
 
-    // 포스트가 없으면 undefined 반환
     if (!post) return undefined
-
-    // 공개된 포스트만 메타데이터 생성 (비공개는 크롤링 방지)
-    if (!post.published) {
-        return {
-            title: 'Private Post',
-            robots: {
-                index: false,
-                follow: false,
-            }
-        }
-    }
 
   const {
     title,
@@ -79,12 +67,19 @@ export async function generateMetadata({ params }): Promise<Metadata | undefined
 }
 
 export default async function Blog({ params }) {
-    // 일단 published 체크 없이 포스트를 가져옴
-    const { data: post } = await supabase
+    const serverSupabase = await createServerSupabase()
+    const adminSession = await getAdminSession(serverSupabase)
+
+    let query = serverSupabase
         .from('posts')
         .select('*')
         .eq('slug', params.slug)
-        .single()
+
+    if (!adminSession) {
+        query = query.eq('published', true)
+    }
+
+    const { data: post } = await query.single()
 
     if (!post) {
         notFound()
