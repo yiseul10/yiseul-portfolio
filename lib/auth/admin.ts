@@ -1,9 +1,9 @@
 import type { SupabaseClient, User } from '@supabase/supabase-js'
 
-// 관리자 이메일 단일 소스. ADMIN_EMAIL(서버 전용)을 우선 쓰고,
-// 없으면 클라이언트와 공유되는 NEXT_PUBLIC_MY_EMAIL로 폴백한다.
+// 관리자 이메일 단일 소스. 이메일은 비밀값이 아니므로 서버/클라이언트 모두
+// NEXT_PUBLIC_MY_EMAIL 하나만 기준으로 삼아 어긋남을 줄인다.
 export function getAdminEmail(): string | null {
-  return process.env.ADMIN_EMAIL || process.env.NEXT_PUBLIC_MY_EMAIL || null
+  return process.env.NEXT_PUBLIC_MY_EMAIL || null
 }
 
 // 서버 인가 판정은 getUser()로 한다.

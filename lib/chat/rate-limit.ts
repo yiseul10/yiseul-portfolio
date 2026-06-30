@@ -1,4 +1,4 @@
-import { supabase } from '@lib/superbase'
+import { createAdminSupabase } from '@lib/supabase-admin'
 
 const DAILY_LIMIT = 20
 
@@ -16,6 +16,7 @@ export type RateLimitResult = {
 }
 
 export async function checkRateLimit(ip: string): Promise<RateLimitResult> {
+  const supabase = createAdminSupabase()
   const todayStart = getTodayStart()
 
   const { count, error } = await supabase
@@ -42,6 +43,7 @@ export async function checkRateLimit(ip: string): Promise<RateLimitResult> {
 }
 
 export async function getRemainingCount(ip: string): Promise<number> {
+  const supabase = createAdminSupabase()
   const todayStart = getTodayStart()
 
   const { count, error } = await supabase

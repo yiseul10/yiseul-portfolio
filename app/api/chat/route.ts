@@ -5,7 +5,7 @@ import { buildContext } from '@lib/chat/build-context'
 import { retrieveBlogChunks } from '@lib/chat/retrieve'
 import { getModel, DEFAULT_PROVIDER } from '@lib/chat/model-config'
 import { MAX_INPUT_LENGTH } from '@lib/chat/constants'
-import { supabase } from '@lib/superbase'
+import { createAdminSupabase } from '@lib/supabase-admin'
 
 export const runtime = 'nodejs'
 
@@ -20,6 +20,8 @@ async function getClientInfo(): Promise<{ ip: string; userAgent: string }> {
 }
 
 export async function POST(req: Request) {
+  const adminSupabase = createAdminSupabase()
+
   // API 키 사전 검증
   if (!process.env.OPENAI_API_KEY) {
     return Response.json(
@@ -90,7 +92,7 @@ export async function POST(req: Request) {
     async onFinish({ text }) {
       // 대화 로그 저장 (비동기, 실패해도 응답에 영향 없음)
       try {
-        await supabase.from('chat_logs').insert({
+        await adminSupabase.from('chat_logs').insert({
           ip,
           user_agent: userAgent,
           user_message: lastUserMessage,

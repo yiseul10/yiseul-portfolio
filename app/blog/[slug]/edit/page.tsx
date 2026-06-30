@@ -64,7 +64,7 @@ export default function EditPostPage() {
 
         const { data: authListener } = supabase.auth.onAuthStateChange((_event, session) => {
             setSession(session)
-            if (!session) {
+            if (!isAdminSession(session)) {
                 router.push('/login')
             }
         })
