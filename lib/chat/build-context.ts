@@ -1,6 +1,7 @@
 import { existsSync, readFileSync, readdirSync } from 'fs'
 import { join } from 'path'
-import { getPublicResumeDataFromAdmin } from '@lib/resume/public'
+import { supabase } from '@lib/superbase'
+import { getPublicResumeData } from '@lib/resume/public'
 
 type WikiFrontmatter = {
   chatbot?: boolean
@@ -22,7 +23,7 @@ function loadProfileMarkdown(): string {
 
 async function fetchResumeData(): Promise<string> {
   try {
-    const resume = await getPublicResumeDataFromAdmin()
+    const resume = await getPublicResumeData(supabase)
     const parts: string[] = []
 
     if (resume.profile) {

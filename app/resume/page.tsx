@@ -4,7 +4,7 @@ import { ResumeActions } from './components/ResumeActions'
 import { defaultResumeData } from '@lib/types/resume'
 import { createServerSupabase } from '@lib/supabase-server'
 import { getAdminUser } from '@lib/auth/admin'
-import { getPublicResumeDataFromAdmin } from '@lib/resume/public'
+import { getPublicResumeData } from '@lib/resume/public'
 
 export const dynamic = 'force-dynamic'
 
@@ -23,7 +23,7 @@ export default async function ResumePage() {
 
   const raw = adminUser
     ? version?.resume_data || {}
-    : await getPublicResumeDataFromAdmin()
+    : await getPublicResumeData(supabase)
   const coverLetter = adminUser ? version?.cover_letter || null : null
 
   const resumeData = {
