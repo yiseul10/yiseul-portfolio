@@ -7,6 +7,8 @@ import {formatDate} from "@/app/blog/utils/post.server";
 import {PostActions} from "@/app/blog/[slug]/components/PostActions";
 import {PostGuard} from "@/app/blog/[slug]/components/PostGuard";
 import { applyWorkCaseStudyPresentation, getWorkCaseStudy } from '@lib/work-case-studies'
+import { createServerSupabase } from '@lib/supabase-server'
+import { getAdminUser } from '@lib/auth/admin'
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
@@ -52,19 +54,10 @@ export async function generateMetadata({ params }): Promise<Metadata | undefined
         .from('posts')
         .select('title, description, image, created_at, slug, published')
         .eq('slug', params.slug)
+        .eq('published', true)
         .single()
 
     if (!post) return undefined
-
-    if (!post.published) {
-        return {
-            title: 'Private Post',
-            robots: {
-                index: false,
-                follow: false,
-            }
-        }
-    }
 
   const presentedPost = applyWorkCaseStudyPresentation(post)
 
@@ -101,11 +94,19 @@ export async function generateMetadata({ params }): Promise<Metadata | undefined
 }
 
 export default async function WorkPost({ params }) {
-    const { data: post } = await supabase
+    const serverSupabase = await createServerSupabase()
+    const adminUser = await getAdminUser(serverSupabase)
+
+    let query = serverSupabase
         .from('posts')
         .select('*')
         .eq('slug', params.slug)
-        .single()
+
+    if (!adminUser) {
+        query = query.eq('published', true)
+    }
+
+    const { data: post } = await query.single()
 
     if (!post) {
         notFound()

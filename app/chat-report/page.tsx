@@ -14,6 +14,7 @@ import { ExportMarkdownButton } from './ExportMarkdownButton'
 import { SaveToObsidianButton } from './SaveToObsidianButton'
 import { ReportTabs } from './ReportTabs'
 import { SplitPane } from './SplitPane'
+import { getAdminUser } from '@lib/auth/admin'
 
 export const dynamic = 'force-dynamic'
 
@@ -221,9 +222,9 @@ export default async function ChatReportPage({
 }) {
   const params = await searchParams
   const supabase = await createServerSupabase()
-  const { data: { session } } = await supabase.auth.getSession()
+  const adminUser = await getAdminUser(supabase)
 
-  if (!session) {
+  if (!adminUser) {
     return (
       <section className="mx-auto flex min-h-[420px] w-full max-w-2xl flex-col justify-center gap-4">
         <h1 className="font-serif text-4xl font-semibold text-neutral-800 dark:text-neutral-100">Chat Report</h1>

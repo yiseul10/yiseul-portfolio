@@ -57,6 +57,7 @@ import {
 import { coverLetterSchema, defaultCoverLetterData } from '@lib/types/cover-letter'
 import { CoverLetterSection } from './components/CoverLetterSection'
 import type { Session } from '@supabase/supabase-js'
+import { isAdminSession } from '@lib/auth/client'
 
 // 편집 폼 스키마: 레쥬메 + 커버레터 + 버전 메타
 const editFormSchema = resumeSchema.extend({
@@ -727,7 +728,7 @@ function ResumeEditContent() {
     checkAuthAndLoad()
     const { data: authListener } = supabase.auth.onAuthStateChange((_event, session) => {
       setSession(session)
-      if (!session) router.push('/login')
+      if (!isAdminSession(session)) router.push('/login')
     })
     return () => { authListener?.subscription.unsubscribe() }
   }, [])
@@ -735,7 +736,7 @@ function ResumeEditContent() {
   const checkAuthAndLoad = async () => {
     try {
       const { data: { session } } = await supabase.auth.getSession()
-      if (!session) { setSession(null); setIsLoading(false); router.push('/login'); return }
+      if (!isAdminSession(session)) { setSession(null); setIsLoading(false); router.push('/login'); return }
       setSession(session)
 
       // resume_versions에서 로드 (쿼리 파라미터 v=<id>, new=1, 또는 활성 버전)
@@ -850,7 +851,7 @@ function ResumeEditContent() {
     )
   }
 
-  if (!session) {
+  if (!isAdminSession(session)) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[50vh] text-neutral-500">
         <AlertTriangle className="h-8 w-8 mb-3 text-neutral-400" />

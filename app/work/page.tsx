@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button'
 import { PostItem } from '@/app/components/post-item'
 import { PostPagination } from '@/app/components/post-pagination'
 import { createServerSupabase } from '@lib/supabase-server'
+import { getAdminUser } from '@lib/auth/admin'
 
 export const dynamic = 'force-dynamic'
 
@@ -16,7 +17,7 @@ export default async function Page({
 }) {
   const params = await searchParams
   const supabase = await createServerSupabase()
-  const { data: { session } } = await supabase.auth.getSession()
+  const adminUser = await getAdminUser(supabase)
 
   const filter = params.filter || null
   const page = Number(params.page || '1')
@@ -27,7 +28,7 @@ export default async function Page({
     .order('created_at', { ascending: false })
     .eq('category', 'experience')
 
-  if (!session) {
+  if (!adminUser) {
     query = query.eq('published', true)
   } else if (filter === 'published') {
     query = query.eq('published', true)
@@ -46,7 +47,7 @@ export default async function Page({
     <div className="flex w-full flex-col">
       <div className="flex items-center justify-between h-[80px] w-full mb-8">
         <h1 className="font-semibold text-5xl text-neutral-800 font-serif">Work</h1>
-        {session && (
+        {adminUser && (
           <Button variant="secondary" size="icon">
             <Link href="/blog/add"><Plus className="w-6 h-6 stroke-3 text-neutral-700" /></Link>
           </Button>
@@ -58,7 +59,7 @@ export default async function Page({
         ) : (
           <div className="w-full flex flex-col gap-8">
             {posts.map((post) => (
-              <PostItem key={post.slug} post={post} session={session} />
+              <PostItem key={post.slug} post={post} isAdmin={!!adminUser} />
             ))}
           </div>
         )}

@@ -5,7 +5,7 @@ import { buildContext } from '@lib/chat/build-context'
 import { retrieveBlogChunks } from '@lib/chat/retrieve'
 import { getModel, DEFAULT_PROVIDER } from '@lib/chat/model-config'
 import { MAX_INPUT_LENGTH } from '@lib/chat/constants'
-import { supabase } from '@lib/superbase'
+import { createAdminSupabase } from '@lib/supabase-admin'
 
 export const runtime = 'nodejs'
 
@@ -20,6 +20,8 @@ async function getClientInfo(): Promise<{ ip: string; userAgent: string }> {
 }
 
 export async function POST(req: Request) {
+  const adminSupabase = createAdminSupabase()
+
   // API 키 사전 검증
   if (!process.env.OPENAI_API_KEY) {
     return Response.json(
@@ -31,8 +33,15 @@ export async function POST(req: Request) {
   const { ip, userAgent } = await getClientInfo()
 
   // Rate limit 체크
-  const { allowed, remaining } = await checkRateLimit(ip)
+  const { allowed, reason } = await checkRateLimit(ip)
   if (!allowed) {
+    if (reason === 'error') {
+      // 한도 소진이 아니라 카운트 조회 실패(fail-closed). 일시적 문제임을 안내한다.
+      return Response.json(
+        { error: '지금은 일시적인 문제로 답변을 못 드리고 있어요. 잠시 후 다시 시도해 주세요.' },
+        { status: 503 }
+      )
+    }
     return Response.json(
       { error: '오늘 사용 횟수를 모두 사용했어요. 내일 다시 물어봐주세요!' },
       {
@@ -83,7 +92,7 @@ export async function POST(req: Request) {
     async onFinish({ text }) {
       // 대화 로그 저장 (비동기, 실패해도 응답에 영향 없음)
       try {
-        await supabase.from('chat_logs').insert({
+        await adminSupabase.from('chat_logs').insert({
           ip,
           user_agent: userAgent,
           user_message: lastUserMessage,

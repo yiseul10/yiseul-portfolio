@@ -5,6 +5,7 @@ import { PostItem } from '@/app/components/post-item'
 import { PostFilters } from '@/app/components/post-filters'
 import { PostPagination } from '@/app/components/post-pagination'
 import { createServerSupabase } from '@lib/supabase-server'
+import { getAdminUser } from '@lib/auth/admin'
 
 export const dynamic = 'force-dynamic'
 
@@ -17,7 +18,7 @@ export default async function Page({
 }) {
   const params = await searchParams
   const supabase = await createServerSupabase()
-  const { data: { session } } = await supabase.auth.getSession()
+  const adminUser = await getAdminUser(supabase)
 
   const category = params.category || 'all'
   const filter = params.filter || null
@@ -29,7 +30,7 @@ export default async function Page({
     .order('created_at', { ascending: false })
     .neq('category', 'experience')
 
-  if (!session) {
+  if (!adminUser) {
     query = query.eq('published', true)
   } else if (filter === 'published') {
     query = query.eq('published', true)
@@ -52,20 +53,20 @@ export default async function Page({
     <div className="flex w-full flex-col">
       <div className="flex items-center justify-between h-[80px] w-full mb-8">
         <h1 className="font-semibold text-5xl text-neutral-800 font-serif">Blog</h1>
-        {session && (
+        {adminUser && (
           <Button variant="secondary" size="icon">
             <Link href="/blog/add"><Plus className="w-6 h-6 stroke-3 text-neutral-700" /></Link>
           </Button>
         )}
       </div>
       <section>
-        <PostFilters showCategoryFilter authenticated={!!session} />
+        <PostFilters showCategoryFilter authenticated={!!adminUser} />
         {(!posts || posts.length === 0) ? (
           <div className="text-sm text-neutral-500 py-4">글이 없습니다.</div>
         ) : (
           <div className="w-full flex flex-col gap-8">
             {posts.map((post) => (
-              <PostItem key={post.slug} post={post} session={session} />
+              <PostItem key={post.slug} post={post} isAdmin={!!adminUser} />
             ))}
           </div>
         )}
